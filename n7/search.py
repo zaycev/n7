@@ -169,7 +169,7 @@ class Searcher(object):
 
     def __init__(self, index_object):
         self.index = index_object
-        self.index.load_terms(500, 0.4)
+        self.index.load_terms(100, 0.4)
         self.vectors = leveldb.LevelDB(self.index.tweet_store_loc)
         self.plists = leveldb.LevelDB(self.index.tweet_index_loc)
 
