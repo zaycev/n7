@@ -398,12 +398,14 @@ class FeatureSet(object):
         
     def fm_from_index(self, training_examples=10):
         v_size = len(self.text_to_vector(""))
+        logging.info("INITIALIZING %dx%d MATRIX" % (training_examples, v_size))
         X = np.zeros((training_examples, v_size), dtype=self.dtype)
         ni = 0
         for tweet_id, tweet_vector in self.searcher.iterate():
             tokens = [self.full_index.id_term_map[term_id] for term_id in tweet_vector]
             f_vect = self.terms_to_vector(None, tokens)
-            print "EXTRACTED %d/%d" % (ni, training_examples)
+            if ni % 10000 == 0:
+                print "EXTRACTED %d/%d" % (ni, training_examples)
             X[ni,:] += f_vect
             ni += 1
             if ni >= training_examples:
