@@ -7,6 +7,7 @@
 # For more information, see README.md
 # For license information, see LICENSE
 
+import gc
 import logging
 import numpy as np
 import cPickle as pickle
@@ -20,9 +21,9 @@ from n7.data import TwitterTextUtil
 from emoticons import Sad_RE
 from emoticons import Happy_RE
 
+from sklearn.externals import joblib
 from sklearn.decomposition import KernelPCA
 from sklearn.feature_extraction.text import TfidfTransformer
-
 
 class FeatureSet(object):
 
@@ -344,8 +345,14 @@ class FeatureSet(object):
                         nw[0] += 1
                         break
         return self.__scale_array__(nw) if scale else nw
-
-    def fit_index(self, training_examples=10, n_components=128, kernel="rbf"):
+        
+    def fit_pca(self, X, n_components=128, kernel="rbf"):
+        self.pca_model = KernelPCA(n_components=n_components, kernel=kernel)
+        logging.info("FITTING PCA MODEL FROM %d EXAMPLES" % X.shape[0])
+        self.pca_model.fit(X)
+        logging.info("FITTING DONE")
+        
+    def fit_pca_from_index(self, training_examples=10, n_components=128, kernel="rbf"):
         X = []
         ni = 0
         for tweet_id, tweet_vector in self.searcher.iterate():
@@ -357,53 +364,59 @@ class FeatureSet(object):
                 break
         logging.info("LOADED %d EXAMPLES" % ni)
         X = np.array(X)
-
-        self.pca_model = KernelPCA(n_components=n_components, kernel=kernel)
+        gc.collect()
+        self.fit_pca(X, n_components, kernel)
+        
+    def fit_tfidf(self, X):
         self.tfidf_model = TfidfTransformer()
-
-        logging.info("FITTING PCA MODEL FROM %d EXAMPLES" % training_examples)
-        self.pca_model.fit(X)
-        logging.info("FITTING TFIDF MODEL FROM %d EXAMPLES" % training_examples)
+        logging.info("FITTING TFIDF MODEL FROM %d EXAMPLES" % X.shape[0])
         self.tfidf_model.fit(X)
         logging.info("FITTING DONE")
-
+        
+    def fit_tfidf_from_index(self, training_examples=10):
+        X = []
+        ni = 0
+        for tweet_id, tweet_vector in self.searcher.iterate():
+            tokens = [self.full_index.id_term_map[term_id] for term_id in tweet_vector]
+            f_vect = self.terms_to_vector(None, tokens)
+            X.append(f_vect)
+            ni += 1
+            if ni >= training_examples:
+                break
+        logging.info("LOADED %d EXAMPLES" % ni)
+        X = np.array(X)
+        gc.collect()
+        self.fit_tfidf(X)
+        
     def save_pca_model(self, file_path=None):
         if file_path is None:
             file_path = "%s/models/model_tfidf.pkl" % self.data_n7_dir
         else:
             file_path = "%s/models/%s" % (self.data_n7_dir, file_path)
-        fl = open(file_path, "wb")
-        pickle.dump(self.pca_model, fl, protocol=pickle.HIGHEST_PROTOCOL)
-        fl.close()
+        joblib.dump(self.pca_model, file_path, compress=9)
 
     def load_pca_model(self, file_path=None):
         if file_path is None:
             file_path = "%s/models/model_tfidf.pkl" % self.data_n7_dir
         else:
             file_path = "%s/models/%s" % (self.data_n7_dir, file_path)
-        fl = open(file_path, "rb")
-        self.pca_model = pickle.load(fl)
+        self.pca_model = joblib.load(file_path)
         logging.info("LOADED PCA MODEL %r" % self.pca_model)
-        fl.close()
 
     def save_tfidf_model(self, file_path=None):
         if file_path is None:
             file_path = "%s/models/model_tfidf.pkl" % self.data_n7_dir
         else:
             file_path = "%s/models/%s" % (self.data_n7_dir, file_path)
-        fl = open(file_path, "wb")
-        pickle.dump(self.tfidf_model, fl, protocol=pickle.HIGHEST_PROTOCOL)
-        fl.close()
+        joblib.dump(self.tfidf_model, file_path, compress=9)
 
     def load_tfidf_model(self, file_path=None):
         if file_path is None:
             file_path = "%s/models/model_tfidf.pkl" % self.data_n7_dir
         else:
             file_path = "%s/models/%s" % (self.data_n7_dir, file_path)
-        fl = open(file_path, "rb")
-        self.tfidf_model = pickle.load(fl)
+        self.tfidf_model = joblib.load(file_path)
         logging.info("LOADED TFIDF MODEL %r" % self.tfidf_model)
-        fl.close()
 
 
     def info(self):

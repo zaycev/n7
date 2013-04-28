@@ -7,3 +7,4 @@
 # For more information, see README.md
 # For license information, see LICENSE
 
+N7_DATA_DIR="n7-data"
