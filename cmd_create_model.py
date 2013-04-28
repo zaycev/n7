@@ -8,7 +8,7 @@
 # For license information, see LICENSE
 
 #   SYNOPSIS:
-#       python cmd_model_index.py <path to index directory>
+#       python cmd_model_index.py <path to index directory> <dataset size>
 
 
 import gc
@@ -35,14 +35,9 @@ if __name__ == "__main__":
     else:
         pca_examples = 10 ** 5
     
-    test_tweets = open("%s/test.tweets.csv" % N7_DATA_DIR, "r")
-
-    reader = csv.reader(test_tweets, delimiter=",", quotechar="\"")
-
     logging.info("CREATING MODEL")
-    logging.info("TEST CORPUS: %s" % test_tweets)
     logging.info("INDEX DIRECTORY: %s" % index_directory)
-
+    
     if tfidf_examples > 0:
         # step #1 create TFIDF model
         f_set = FeatureSet(index_directory, ft_terms_tf=True)
@@ -59,21 +54,3 @@ if __name__ == "__main__":
         f_set.save_pca_model("model_pca_1.pkl")
         f_set = None
         gc.collect()
-    
-
-    '''
-    f_set = FeatureSet(index_directory,
-                       ft_number_of_words=True,
-                       ft_number_of_hash_tags=True,
-                       ft_number_of_user_names=True,
-                       ft_number_of_bad_words=True,
-                       ft_number_of_links=True,
-                       ft_number_of_punct=False,
-                       ft_emoticons=True,
-                       ft_terms_tfidf=True,
-                       pca=True,
-                       ft_scale=True)
-
-    f_set.load_tfidf_model("tfidf_1.pck")
-    f_set.load_pca_model("pca_1.pck")
-    '''
