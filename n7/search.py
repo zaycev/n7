@@ -27,7 +27,7 @@ except ImportError:
 
 class TextIndex(object):
 
-    def __init__(self, data_dir):
+    def __init__(self, data_dir, df=10**6):
         self.terms_store_loc = "%s/terms_store.db" % data_dir
         self.tweet_index_loc = "%s/tweet_index.db" % data_dir
         self.tweet_store_loc = "%s/tweet_vector.db" % data_dir
@@ -36,6 +36,11 @@ class TextIndex(object):
         self.id_term_freq = None
         self.total_freq = 0
         self.id_index_map = None
+        self.lmtz = wnl()
+        self.df = df
+
+    def tokenize(self, text):
+        return [self.lmtz.lemmatize(token.lower()) for token in twokenize.tokenize(text)]
 
     def encode_plist(self, plist):
         plist.sort()
@@ -143,7 +148,6 @@ class TextIndex(object):
 
     def learn_terms(self, tweets_file_object, learn_lemmas=True, cache_size=1000000):
         reader = csv.reader(tweets_file_object, delimiter=",", quotechar="\"")
-        lmtzr = wnl()
         term_freq = Counter()
         term_id_map = dict()
         tweet_vectors = []
@@ -152,7 +156,7 @@ class TextIndex(object):
             tweet_text = row[-1]
             terms = [t.lower().encode("utf-8") for t in twokenize.tokenize(tweet_text)]
             if learn_lemmas:
-                terms = [lmtzr.lemmatize(term) for term in terms]
+                terms = [self.lmtz.lemmatize(term) for term in terms]
             tweet_sp_vector = []
             counted_ids = []
             for term in terms:
@@ -175,9 +179,9 @@ class TextIndex(object):
 
 class Searcher(object):
 
-    def __init__(self, index_object):
+    def __init__(self, index_object, terms_min_df, terms_max_df):
         self.index = index_object
-        self.index.load_terms(100, 0.4)
+        self.index.load_terms(terms_min_df, terms_max_df)
         self.vectors = leveldb.LevelDB(self.index.tweet_store_loc)
         self.plists = leveldb.LevelDB(self.index.tweet_index_loc)
 

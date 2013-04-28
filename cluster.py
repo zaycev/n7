@@ -21,7 +21,7 @@ from sklearn.datasets import make_circles
 
 
 from n7.cluster import Clusterer
-from n7.models import FeatureMatrix
+from n7.model import FeatureMatrix
 from n7.search import TextIndex, Searcher
 
 if __name__ == "__main__":
@@ -32,7 +32,7 @@ if __name__ == "__main__":
     tw_search = Searcher(tw_index)
     model = FeatureMatrix(tw_search)
     
-    model.from_vectors(tw_search.iterate(), n=1000)
+    model.from_vectors(tw_search.iterate(), n=500)
     # model.apply_tfids() 
     model.apply_kpca(n_components=2)
     
