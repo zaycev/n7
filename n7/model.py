@@ -56,7 +56,7 @@ class FeatureSet(object):
 
                  data_n7_dir=N7_DATA_DIR,      #
 
-                 dtype=np.float64,             #
+                 dtype=np.float32,             #
 
                  verbose=False):                #
 
@@ -353,18 +353,7 @@ class FeatureSet(object):
         logging.info("FITTING DONE")
         
     def fit_pca_from_index(self, training_examples=10, n_components=128, kernel="rbf"):
-        X = []
-        ni = 0
-        for tweet_id, tweet_vector in self.searcher.iterate():
-            tokens = [self.full_index.id_term_map[term_id] for term_id in tweet_vector]
-            f_vect = self.terms_to_vector(None, tokens)
-            X.append(f_vect)
-            ni += 1
-            if ni >= training_examples:
-                break
-        logging.info("LOADED %d EXAMPLES" % ni)
-        X = np.array(X)
-        gc.collect()
+        X = self.fm_from_index(training_examples)
         self.fit_pca(X, n_components, kernel)
         
     def fit_tfidf(self, X):
@@ -374,18 +363,7 @@ class FeatureSet(object):
         logging.info("FITTING DONE")
         
     def fit_tfidf_from_index(self, training_examples=10):
-        X = []
-        ni = 0
-        for tweet_id, tweet_vector in self.searcher.iterate():
-            tokens = [self.full_index.id_term_map[term_id] for term_id in tweet_vector]
-            f_vect = self.terms_to_vector(None, tokens)
-            X.append(f_vect)
-            ni += 1
-            if ni >= training_examples:
-                break
-        logging.info("LOADED %d EXAMPLES" % ni)
-        X = np.array(X)
-        gc.collect()
+        X = self.fm_from_index(training_examples)
         self.fit_tfidf(X)
         
     def save_pca_model(self, file_path=None):
@@ -417,7 +395,36 @@ class FeatureSet(object):
             file_path = "%s/models/%s" % (self.data_n7_dir, file_path)
         self.tfidf_model = joblib.load(file_path)
         logging.info("LOADED TFIDF MODEL %r" % self.tfidf_model)
-
+        
+    def fm_from_index(self, training_examples=10):
+        v_size = len(self.text_to_vector(""))
+        X = np.zeros((training_examples, v_size), dtype=self.dtype)
+        ni = 0
+        for tweet_id, tweet_vector in self.searcher.iterate():
+            tokens = [self.full_index.id_term_map[term_id] for term_id in tweet_vector]
+            f_vect = self.terms_to_vector(None, tokens)
+            X[ni:] = f_vect
+            ni += 1
+            if ni >= training_examples:
+                break
+        return X
+        
+        
+        '''
+        X = []
+        ni = 0
+        for tweet_id, tweet_vector in self.searcher.iterate():
+            tokens = [self.full_index.id_term_map[term_id] for term_id in tweet_vector]
+            f_vect = self.terms_to_vector(None, tokens)
+            X.append(f_vect)
+            ni += 1
+            if ni >= training_examples:
+                break
+        logging.info("LOADED %d EXAMPLES" % ni)
+        X = np.array(X)
+        gc.collect()
+        self.fit_tfidf(X)
+        '''
 
     def info(self):
         pass
