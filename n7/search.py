@@ -143,6 +143,7 @@ class TextIndex(object):
 
     def learn_terms(self, tweets_file_object, learn_lemmas=True, cache_size=1000000):
         reader = csv.reader(tweets_file_object, delimiter=",", quotechar="\"")
+        lmtzr = wnl()
         term_freq = Counter()
         term_id_map = dict()
         tweet_vectors = []
@@ -151,7 +152,7 @@ class TextIndex(object):
             tweet_text = row[-1]
             terms = [t.lower().encode("utf-8") for t in twokenize.tokenize(tweet_text)]
             if learn_lemmas:
-                terms = [wnl.lemmatize(term) for term in terms]
+                terms = [lmtzr.lemmatize(term) for term in terms]
             tweet_sp_vector = []
             counted_ids = []
             for term in terms:
