@@ -11,7 +11,6 @@ import sys
 import logging
 
 from n7.data import Loader
-from n7.models import FeatureMatrix
 from n7.search import TextIndex, Searcher
 
 if __name__ == "__main__":
@@ -26,9 +25,9 @@ if __name__ == "__main__":
     # tw_index.create_text_index()
 
     tw_search = Searcher(tw_index)
-    model = FeatureMatrix(tw_search)
+#    model = FeatureMatrix(tw_search)
 
-    model.from_vectors(tw_search.iterate())
+#    model.from_vectors(tw_search.iterate())
 
 
 
