@@ -9,15 +9,20 @@
 
 import csv
 import lz4
-import nltk
 import array
 import logging
 import leveldb
 import cPickle
 import numencode
 import twokenize
-import collections
 import marshal as pickle
+
+
+from nltk import WordNetLemmatizer as wnl
+try:
+    from collections import Counter
+except ImportError:
+    from n7.misc.counter import Counter
 
 
 class TextIndex(object):
@@ -50,7 +55,7 @@ class TextIndex(object):
         term_store = leveldb.LevelDB(self.terms_store_loc)
         self.term_id_map = dict()
         self.id_term_map = dict()
-        self.id_term_freq = collections.Counter()
+        self.id_term_freq = Counter()
         self.total_freq = 0
         self.id_index_map = dict()
         loaded = 0
@@ -96,7 +101,7 @@ class TextIndex(object):
             prev_sz / len(posting_lists)
         ))
 
-    def create_text_index(self, cache_size=500000):
+    def create_text_index(self, cache_size=1000000):
         tweet_store = leveldb.LevelDB(self.tweet_store_loc)
         posting_lists = dict()
         cache_counter = 0
@@ -136,15 +141,17 @@ class TextIndex(object):
         term_store.Write(w_batch)
         logging.info("FLUSH %d TERMS" % len(term_id_map))
 
-    def learn_terms(self, tweets_file_object, cache_size=500000):
+    def learn_terms(self, tweets_file_object, learn_lemmas=True, cache_size=1000000):
         reader = csv.reader(tweets_file_object, delimiter=",", quotechar="\"")
-        term_freq = collections.Counter()
+        term_freq = Counter()
         term_id_map = dict()
         tweet_vectors = []
         for row in reader:
             tweet_id = int(row[0])
             tweet_text = row[-1]
             terms = [t.lower().encode("utf-8") for t in twokenize.tokenize(tweet_text)]
+            if learn_lemmas:
+                terms = [wnl.lemmatize(term) for term in terms]
             tweet_sp_vector = []
             counted_ids = []
             for term in terms:
