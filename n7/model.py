@@ -346,7 +346,7 @@ class FeatureSet(object):
                         break
         return self.__scale_array__(nw) if scale else nw
         
-    def fit_pca(self, X, n_components=128, kernel="rbf"):
+    def fit_pca(self, X, n_components=64, kernel="linear"):
         self.pca_model = KernelPCA(n_components=n_components, kernel=kernel)
         logging.info("FITTING PCA MODEL FROM %d EXAMPLES" % X.shape[0])
         self.pca_model.fit(X)
@@ -403,7 +403,8 @@ class FeatureSet(object):
         for tweet_id, tweet_vector in self.searcher.iterate():
             tokens = [self.full_index.id_term_map[term_id] for term_id in tweet_vector]
             f_vect = self.terms_to_vector(None, tokens)
-            X[ni:] = f_vect
+            print "EXTRACTED %d/%d" % (ni, training_examples)
+            X[ni,:] += f_vect
             ni += 1
             if ni >= training_examples:
                 break
