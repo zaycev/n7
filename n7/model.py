@@ -29,38 +29,38 @@ class FeatureSet(object):
 
     def __init__(self, index_dir,
 
-                 allowed_terms=None,           # list of allowed terms which will be used (need for testing)
-                 disallowed_terms=None,        # list of disallowed terms which will be ignored
+                 allowed_terms=None,            # list of allowed terms which will be used (need for testing)
+                 disallowed_terms=None,         # list of disallowed terms which will be ignored
 
                  ft_number_of_words=False,      # use number of regular words as feature
                  ft_number_of_hash_tags=False,  # use number of hash-tags as feature
                  ft_number_of_user_names=False, # use number of twitter user names as feature
-                 ft_number_of_bad_words=False, # use number of bad words as feature
-                 ft_number_of_links=False,     #
-                 ft_number_of_nes=False,       # use number of named entities as feature
-                 ft_number_of_punct=False,     #
-                 ft_emoticons=False,           #
-                 ft_total_hate_score=False,    # use total hate score as feature
-                 ft_terms_binary=False,        # use vector space model with binary function as feature
-                 ft_terms_tf=False,            # use vector space model with frequency function as feature
-                 ft_terms_tfidf=False,         # use vector space model with tfidf function as feature
+                 ft_number_of_bad_words=False,  # use number of bad words as feature
+                 ft_number_of_links=False,      #
+                 ft_number_of_nes=False,        # use number of named entities as feature
+                 ft_number_of_punct=False,      #
+                 ft_emoticons=False,            #
+                 ft_total_hate_score=False,     # use total hate score as feature
+                 ft_terms_binary=False,         # use vector space model with binary function as feature
+                 ft_terms_tf=False,             # use vector space model with frequency function as feature
+                 ft_terms_tfidf=False,          # use vector space model with tfidf function as feature
                  ft_scale=False,
 
-                 terms_max_df=0.5,             # specifies max document frequency in feature selection (normalized)
-                 terms_min_df=50,              # specifies min document frequency in feature selection
+                 terms_max_df=0.5,              # specifies max document frequency in feature selection (normalized)
+                 terms_min_df=50,               # specifies min document frequency in feature selection
 
-                 tfidf_model=None,             #
+                 tfidf_model=None,              #
 
-                 pca=False,                    # apply pca to output vector
-                 pca_model=None,               #
+                 pca=False,                     # apply pca to output vector
+                 pca_model=None,                #
 
-                 data_n7_dir=N7_DATA_DIR,      #
+                 data_n7_dir=N7_DATA_DIR,       #
 
-                 dtype=np.float32,             #
+                 dtype=np.float32,              #
 
                  verbose=False):                #
 
-        logging.info("CREATING MODEL")
+        logging.info("GENERATING MODEL")
 
         self.tweet_id_index_map = dict()
         self.index_tweet_id_map = dict()
@@ -408,23 +408,14 @@ class FeatureSet(object):
             if ni >= training_examples:
                 break
         return X
-        
-        
-        '''
-        X = []
-        ni = 0
-        for tweet_id, tweet_vector in self.searcher.iterate():
-            tokens = [self.full_index.id_term_map[term_id] for term_id in tweet_vector]
-            f_vect = self.terms_to_vector(None, tokens)
-            X.append(f_vect)
-            ni += 1
-            if ni >= training_examples:
-                break
-        logging.info("LOADED %d EXAMPLES" % ni)
-        X = np.array(X)
-        gc.collect()
-        self.fit_tfidf(X)
-        '''
+    
+    def save_fm(self, X, file_path=None):
+        if file_path is None:
+            file_path = "%s/models/X.pkl" % self.data_n7_dir
+        else:
+            file_path = "%s/models/%s" % (self.data_n7_dir, file_path)
+        logging.info("SAVING FEATURE MATRIX %r -> %s" % (X.shape, file_path))
+        joblib.dump(X, file_path, compress=9)
 
     def info(self):
         pass
