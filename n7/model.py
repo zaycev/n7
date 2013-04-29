@@ -22,7 +22,7 @@ from emoticons import Sad_RE
 from emoticons import Happy_RE
 
 from sklearn.externals import joblib
-from sklearn.decomposition import SparsePCA
+from sklearn.decomposition import KernelPCA
 from sklearn.feature_extraction.text import TfidfTransformer
 
 class FeatureSet(object):
@@ -346,8 +346,8 @@ class FeatureSet(object):
                         break
         return self.__scale_array__(nw) if scale else nw
         
-    def fit_pca(self, X, n_components=128, method="lars"):
-        self.pca_model = SparsePCA(n_components=n_components, method=method, n_jobs=8)
+    def fit_pca(self, X, n_components=128, kernel="sigmoid"):
+        self.pca_model = KernelPCA(n_components=n_components, kernel=kernel)
         logging.info("FITTING PCA MODEL FROM %d EXAMPLES" % X.shape[0])
         self.pca_model.fit(X)
         logging.info("FITTING DONE")
