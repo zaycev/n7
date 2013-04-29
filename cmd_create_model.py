@@ -48,7 +48,17 @@ if __name__ == "__main__":
 
     # step #2 create PCA+TFIDF model
     if pca_examples > 0:
-        f_set = FeatureSet(index_directory, ft_terms_tfidf=True)
+        f_set = FeatureSet(index_directory,
+                           ft_number_of_words=True,
+                           ft_number_of_hash_tags=True,
+                           ft_number_of_user_names=True,
+                           ft_number_of_bad_words=True,
+                           ft_number_of_links=True,
+                           ft_number_of_punct=False,
+                           ft_emoticons=True,
+                           ft_terms_tfidf=True,
+                           pca=False,
+                           ft_scale=True)
         f_set.load_tfidf_model("model_tfidf_1.pkl")
         f_set.fit_pca_from_index(training_examples=pca_examples)
         f_set.save_pca_model("model_pca_1.pkl")

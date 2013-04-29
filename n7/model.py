@@ -141,13 +141,13 @@ class FeatureSet(object):
             self.bad_words = loader.bad_words(add_hashtags=False)
             print "\tMODEL: %d bad words" % len(self.bad_words)
 
-    def text_to_vector(self, text):
+    def text_to_vector(self, text, allow_pca=True):
         tokens = self.index.tokenize(text)
         if self.verbose:
             print tokens
-        return self.terms_to_vector(text, tokens)
+        return self.terms_to_vector(text, tokens, allow_pca=allow_pca)
 
-    def terms_to_vector(self, text, terms):
+    def terms_to_vector(self, text, terms, allow_pca=True):
         term_ids = []
         outputs = []
 
@@ -169,25 +169,18 @@ class FeatureSet(object):
 
         if self.ft_terms_binary:
             bin_vector = self.__ft_bin_vector__(term_ids, terms, scale=self.ft_scale)
-            if self.pca:
-                print self.pca_model
-                bin_vector = np.asarray(self.pca_model.transform(bin_vector)).reshape(-1)
             if self.verbose:
                 print "bin_vector", bin_vector
             outputs.append(bin_vector)
 
         if self.ft_terms_tf:
             tf_vector = self.__ft_tf_vector__(term_ids, terms, scale=self.ft_scale)
-            if self.pca:
-                tf_vector = np.asarray(self.pca_model.transform(tf_vector)).reshape(-1)
             if self.verbose:
                 print "tf_vector", tf_vector
             outputs.append(tf_vector)
 
         if self.ft_terms_tfidf:
             tfifd_vector = self.__ft_tfidf_vector__(term_ids, terms, scale=self.ft_scale)
-            if self.pca:
-                tfifd_vector = np.asarray(self.pca_model.transform(tfifd_vector)).reshape(-1)
             if self.verbose:
                 print "tfifd_vector", tfifd_vector
             outputs.append(tfifd_vector)
@@ -235,6 +228,11 @@ class FeatureSet(object):
             outputs.append(emoticons_vector)
 
         outputs = np.concatenate(outputs)
+        
+        if allow_pca and self.pca:
+            print "PCA IS ALLOWED"
+            outputs = np.asarray(self.pca_model.transform(outputs)).reshape(-1)
+        
         if self.verbose:
             print outputs
 
@@ -346,13 +344,13 @@ class FeatureSet(object):
                         break
         return self.__scale_array__(nw) if scale else nw
         
-    def fit_pca(self, X, n_components=128, kernel="sigmoid"):
+    def fit_pca(self, X, n_components=64, kernel="sigmoid"):
         self.pca_model = KernelPCA(n_components=n_components, kernel=kernel)
-        logging.info("FITTING PCA MODEL FROM %d EXAMPLES" % X.shape[0])
+        logging.info("FITTING PCA(%s-%d) MODEL FROM %d EXAMPLES" % (kernel, n_components, X.shape[0]))
         self.pca_model.fit(X)
         logging.info("FITTING DONE")
         
-    def fit_pca_from_index(self, training_examples=10, n_components=128, kernel="rbf"):
+    def fit_pca_from_index(self, training_examples=10, n_components=64, kernel="sigmoid"):
         X = self.fm_from_index(training_examples)
         self.fit_pca(X, n_components, kernel)
         
@@ -397,19 +395,23 @@ class FeatureSet(object):
         logging.info("LOADED TFIDF MODEL %r" % self.tfidf_model)
         
     def fm_from_index(self, training_examples=10):
-        v_size = len(self.text_to_vector(""))
+        from scipy.sparse import lil_matrix
+        v_size = len(self.text_to_vector("", allow_pca=False))
         logging.info("INITIALIZING %dx%d MATRIX" % (training_examples, v_size))
-        X = np.zeros((training_examples, v_size), dtype=self.dtype)
+        X = lil_matrix((training_examples, v_size), dtype=self.dtype) # np.zeros((training_examples, v_size), dtype=self.dtype)
         ni = 0
         for tweet_id, tweet_vector in self.searcher.iterate():
             tokens = [self.full_index.id_term_map[term_id] for term_id in tweet_vector]
-            f_vect = self.terms_to_vector(None, tokens)
-            if ni % 10000 == 0:
-                print "EXTRACTED %d/%d" % (ni, training_examples)
-            X[ni,:] += f_vect
+            f_vect = self.terms_to_vector(None, tokens, allow_pca=False)
+            # if ni % 100 == 0:
+            print "EXTRACTED %d/%d" % (ni, training_examples)
+            # X[ni,:] += f_vect
             ni += 1
             if ni >= training_examples:
                 break
+        if self.pca:
+            print "APPYING PCA %r" % self.pca_model
+            X = self.pca_model.transform(X)
         return X
     
     def save_fm(self, X, file_path=None):
