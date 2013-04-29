@@ -22,7 +22,7 @@ from emoticons import Sad_RE
 from emoticons import Happy_RE
 
 from sklearn.externals import joblib
-from sklearn.decomposition import MiniBatchSparsePCA
+from sklearn.decomposition import SparsePCA
 from sklearn.feature_extraction.text import TfidfTransformer
 
 class FeatureSet(object):
@@ -347,7 +347,7 @@ class FeatureSet(object):
         return self.__scale_array__(nw) if scale else nw
         
     def fit_pca(self, X, n_components=128, method="lars"):
-        self.pca_model = MiniBatchSparsePCA(n_components=n_components, method=method, n_jobs=8)
+        self.pca_model = SparsePCA(n_components=n_components, method=method, n_jobs=8)
         logging.info("FITTING PCA MODEL FROM %d EXAMPLES" % X.shape[0])
         self.pca_model.fit(X)
         logging.info("FITTING DONE")
