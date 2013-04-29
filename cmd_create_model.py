@@ -54,7 +54,7 @@ if __name__ == "__main__":
                            ft_number_of_user_names=True,
                            ft_number_of_bad_words=True,
                            ft_number_of_links=True,
-                           ft_number_of_punct=False,
+                           ft_number_of_punct=True,
                            ft_emoticons=True,
                            ft_terms_tfidf=True,
                            pca=False,

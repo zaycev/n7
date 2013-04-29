@@ -14,32 +14,47 @@ import pylab as pl
 from itertools import cycle
 from sklearn.metrics.pairwise import euclidean_distances
 from sklearn.datasets.samples_generator import make_blobs
-from sklearn.decomposition import PCA, KernelPCA
+from sklearn.decomposition import PCA, KernelPCA, RandomizedPCA
 from sklearn.datasets import make_circles
 from sklearn.cluster import MiniBatchKMeans, KMeans, Ward, AffinityPropagation, DBSCAN
 
 
 class Clusterer(object):
 
-    def __init__(self, feature_matrix):
-        self.fm = feature_matrix
+    def __init__(self, X, to_pdf=False):
+        self.X = X
+        self.to_pdf = to_pdf
+        if self.to_pdf:
+            self.pdf = ""
+            
+    def draw(self):
+        pl.close('all')
+        pl.figure(1)
+        pl.clf()
+        X2d = RandomizedPCA(n_components=2).fit_transform(self.X)
+        print len(X2d)
+        for i in xrange(len(X2d)):
+            x = X2d[i]
+            pl.plot(x[0], x[1], ".", markerfacecolor="r", markeredgecolor="r", alpha=0.2)
+        pl.show()
+        
 
     def kmean(self, n_clusters, plot=True):
-        k_means = Ward(n_clusters=n_clusters, compute_full_tree=True, n_components=2)
-        k_means.fit(fm.X)
-        k_means_labels = k_means.labels_
+        k_means = Ward(n_clusters=n_clusters, copy=False, compute_full_tree=True)
+        k_means.fit(self.X)
+        labels = k_means.labels_
         
         pl.close('all')
         pl.figure(1)
         pl.clf()
         
         if plot:
-            colors = "rbgcmybgrcmybgrcmybgrcm"
-            X2d = model.project2d()
+            colors = "rbgcmybgrcmybgrcmybgrcm" * 10
+            X2d = RandomizedPCA(n_components=2).fit_transform(self.X)
             for i in xrange(len(X2d)):
                 x = X2d[i]
-                pl.plot(x[0], x[1], "x", markerfacecolor=colors[labels[i]], markeredgecolor=colors[labels[i]])
-                pl.plot(x[0], x[1], "x", markerfacecolor="r", markeredgecolor="r")
+                pl.plot(x[0], x[1], "o", markerfacecolor=colors[labels[i]], markeredgecolor=colors[labels[i]])
+            pl.show()
         
         return k_means.labels_
 

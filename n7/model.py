@@ -22,7 +22,7 @@ from emoticons import Sad_RE
 from emoticons import Happy_RE
 
 from sklearn.externals import joblib
-from sklearn.decomposition import KernelPCA
+from sklearn.decomposition import KernelPCA, SparsePCA
 from sklearn.feature_extraction.text import TfidfTransformer
 
 class FeatureSet(object):
@@ -395,82 +395,45 @@ class FeatureSet(object):
         logging.info("LOADED TFIDF MODEL %r" % self.tfidf_model)
         
     def fm_from_index(self, training_examples=10):
-        from scipy.sparse import lil_matrix
         v_size = len(self.text_to_vector("", allow_pca=False))
         logging.info("INITIALIZING %dx%d MATRIX" % (training_examples, v_size))
-        X = lil_matrix((training_examples, v_size), dtype=self.dtype) # np.zeros((training_examples, v_size), dtype=self.dtype)
-        ni = 0
+        X = np.zeros((training_examples, v_size), dtype=self.dtype)
+        # X = matrix((training_examples, v_size), dtype=self.dtype)
+        
+        i = 0
         for tweet_id, tweet_vector in self.searcher.iterate():
             tokens = [self.full_index.id_term_map[term_id] for term_id in tweet_vector]
             f_vect = self.terms_to_vector(None, tokens, allow_pca=False)
-            # if ni % 100 == 0:
-            print "EXTRACTED %d/%d" % (ni, training_examples)
-            # X[ni,:] += f_vect
-            ni += 1
-            if ni >= training_examples:
+            print "EXTRACTED %d/%d" % (i, training_examples)
+            X[i,:] = f_vect
+            i += 1
+            if i >= training_examples:
                 break
         if self.pca:
-            print "APPYING PCA %r" % self.pca_model
+            print "APPLYING PCA %r" % self.pca_model
             X = self.pca_model.transform(X)
+        if self.verbose:
+            print X
         return X
     
-    def save_fm(self, X, file_path=None):
+    @staticmethod
+    def save_fm(X, file_path=None):
         if file_path is None:
-            file_path = "%s/models/X.pkl" % self.data_n7_dir
+            file_path = "%s/models/X.pkl" % N7_DATA_DIR
         else:
-            file_path = "%s/models/%s" % (self.data_n7_dir, file_path)
+            file_path = "%s/models/%s" % (N7_DATA_DIR, file_path)
         logging.info("SAVING FEATURE MATRIX %r -> %s" % (X.shape, file_path))
+        print X
         joblib.dump(X, file_path, compress=9)
+        
+    @staticmethod
+    def load_fm(file_path=None):
+        if file_path is None:
+            file_path = "%s/models/X.pkl" % N7_DATA_DIR
+        else:
+            file_path = "%s/models/%s" % (N7_DATA_DIR, file_path)
+        X = joblib.load(file_path)
+        return X
 
     def info(self):
         pass
-
-
-
-
-class FeatureMatrix(object):
-
-    def __init__(self, searcher):
-        self.X = None
-        self.searcher = searcher
-        self.tweet_id_index_map = None
-        self.index_tweet_id_map = None
-
-    def from_vectors(self, i_vectors, n=100):
-        ni = 0
-        m = len(self.searcher.index.id_term_map)
-        self.tweet_id_index_map = dict()
-        self.index_tweet_id_map = dict()
-        self.X = np.zeros((n, m))
-        print n, m
-        for tweet_id, tweet_vector in i_vectors:
-            tweet_vector = self.searcher.term_filter(tweet_vector)
-            new_index = len(self.tweet_id_index_map)
-            # print tweet_vector
-            self.tweet_id_index_map[tweet_id] = new_index
-            self.index_tweet_id_map[new_index] = tweet_id
-            x = new_index
-            for term_id in tweet_vector:
-                y = self.searcher.index.id_index_map[term_id]
-                # print term_id, "=>", y
-                self.X[x, y] += 1
-            ni += 1
-            if ni >= n:
-                break
-        # print self.X
-
-    def apply_tfids(self, norm="l2"):
-        tfids = TfidfTransformer(norm=norm)
-        self.X = tfids.fit_transform(self.X).toarray()
-
-    def apply_kpca(self, n_components=128, kernel="rbf"):
-        kpca = KernelPCA(n_components=n_components, kernel=kernel)
-        self.X = kpca.fit_transform(self.X)
-
-    def apply_pca(self, n_components=128):
-        pca = PCA(n_components=n_components)
-        self.X = pca.fit_transform(self.X)
-
-    def project2d(self, kernel="rbf"):
-        kpca = KernelPCA(n_components=2, kernel=kernel)
-        return kpca.fit_transform(self.X)
