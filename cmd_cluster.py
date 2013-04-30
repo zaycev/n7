@@ -53,8 +53,8 @@ if __name__ == "__main__":
     
     cl = Clusterer()
     
-    cl.draw(X0, X1, Y1)
-    # cl.kmean(X0, 20)
+    # cl.draw(X0, X1, Y1)
+    cl.kmean(X0, 20)
     
     
 
