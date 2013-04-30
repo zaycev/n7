@@ -14,22 +14,38 @@
 import sys
 import logging
 
-from n7.model import FSetLoader
-from sklearn.feature_extraction.text import TfidfTransformer
+from n7.model import FeatureSet
 
 
 if __name__ == "__main__":
 
     logging.basicConfig(level=logging.INFO)
+    index_directory = sys.argv[1]
 
-    input_matrix_name = sys.argv[1] if len(sys.argv) > 1 else "X_tf.pkl"
-    output_model_name = sys.argv[2] if len(sys.argv) > 2 else "model_tfidf.pkl"
+    if len(sys.argv) > 2:
+        dataset_size = int(sys.argv[2])
+    else:
+        dataset_size = 10 ** 5
 
-    loader = FSetLoader()
+    matrix_name = sys.argv[3] if len(sys.argv) > 3 else "X_tfidf.pkl"
+    model_tfidf_name = sys.argv[4] if len(sys.argv) > 4 else "model_tfidf.pkl"
 
-    X_tf = loader.load_model(input_matrix_name)
-    model = TfidfTransformer()
-    logging.info("FITTING TFIDF on %dx%d examples" % (X_tf.shape[0], X_tf.shape[1]))
-    model.fit(X_tf)
-    logging.info("FITTING DONE: %r" % model)
-    loader.save_model(model, output_model_name)
+    logging.info("EXTRACTING FEATURE MATRIX")
+    logging.info("INDEX DIRECTORY: %s" % index_directory)
+
+    f_set = FeatureSet(index_directory,
+                       ft_number_of_words=True,
+                       ft_number_of_hash_tags=True,
+                       ft_number_of_user_names=True,
+                       ft_number_of_bad_words=True,
+                       ft_number_of_links=True,
+                       ft_number_of_punct=True,
+                       ft_emoticons=True,
+                       ft_terms_tfidf=True,
+                       pca=False,
+                       ft_scale=True)
+    f_set.load_tfidf_model(model_tfidf_name)
+    X = f_set.fm_from_index(training_examples=dataset_size)
+    
+    f_set.save_fm(X, matrix_name, sparse=True)
+
