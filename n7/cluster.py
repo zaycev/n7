@@ -30,17 +30,18 @@ class Clusterer(object):
         pl.close('all')
         pl.figure(1)
         pl.clf()
-        X2d = RandomizedPCA(n_components=2).fit_transform(X)
-        colors = "rbgcmybgrcmybgrcmybgrcm" * 10
+        pca = PCA(n_components=2)#, kernel="sigmoid")
+        pca.fit(X)
+        X2d = pca.transform(X)
+        colors = "kb"
         for i in xrange(len(X2d)):
             x = X2d[i]
             pl.plot(x[0], x[1], "o", markerfacecolor="r", markeredgecolor="r", alpha=0.035)
         if X1 is not None and Y1 is not None:
-            X12d = RandomizedPCA(n_components=2).fit_transform(X1)
+            X12d = pca.transform(X1)
             for i in xrange(len(X12d)):
                 x = X12d[i]
-                if Y1[i] > 0:
-                    pl.plot(x[0], x[1], "o", markerfacecolor=colors[Y1[i]], markeredgecolor="k", alpha=1)
+                pl.plot(x[0], x[1], "o", markerfacecolor=colors[Y1[i]], markeredgecolor="k", alpha=0.3)
         pl.show()
         
 

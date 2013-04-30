@@ -483,13 +483,13 @@ class FeatureSet(object):
                         Y.append(0)
                     else:
                         if int(cl) > 0:
-                            Y.append(i)
+                            Y.append(1)
                         else:
                             Y.append(0)
             i += 1
 
         i_tokens = imap(self.index.tokenize, texts)
-        X = self.fm_from_tokens(i_tokens, 296)
+        X = self.fm_from_tokens(i_tokens, 500)
 
         if labeled:
             return X, Y
