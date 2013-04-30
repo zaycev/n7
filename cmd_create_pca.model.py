@@ -15,7 +15,7 @@ import sys
 import logging
 
 from n7.model import FSetLoader
-from sklearn.decomposition import KernelPCA
+from sklearn.decomposition import MiniBatchSparsePCA
 
 
 if __name__ == "__main__":
@@ -28,9 +28,9 @@ if __name__ == "__main__":
     loader = FSetLoader()
 
     X = loader.load_model(input_matrix_name)
-    model = KernelPCA(n_components=128, kernel="sigmoid")
+    model = MiniBatchSparsePCA(n_components=128, n_jobs=3)
     logging.info("FITTING PCA on %dx%d examples" % (X.shape[0], X.shape[1]))
-    model.fit(X)
+    model.fit(X.toarray())
     logging.info("FITTING DONE: %r" % model)
     loader.save_model(model, output_model_name)
     loader.save_model(model.lambdas_, output_model_name + ".ev")
