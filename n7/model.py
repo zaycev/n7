@@ -7,10 +7,19 @@
 # For more information, see README.md
 # For license information, see LICENSE
 
-import gc
+import csv
 import logging
 import numpy as np
-import cPickle as pickle
+
+from itertools import imap
+
+from emoticons import Sad_RE
+from emoticons import Happy_RE
+
+from sklearn.externals import joblib
+from sklearn.decomposition import KernelPCA
+from scipy.sparse import lil_matrix as sparse_matrix
+from sklearn.feature_extraction.text import TfidfTransformer
 
 from n7 import N7_DATA_DIR
 from n7.data import Loader
@@ -18,12 +27,25 @@ from n7.search import Searcher
 from n7.search import TextIndex
 from n7.data import TwitterTextUtil
 
-from emoticons import Sad_RE
-from emoticons import Happy_RE
 
-from sklearn.externals import joblib
-from sklearn.decomposition import KernelPCA, SparsePCA
-from sklearn.feature_extraction.text import TfidfTransformer
+class FSetLoader(object):
+
+    def __init__(self, data_n7_dir=N7_DATA_DIR):
+        self.data_n7_dir = data_n7_dir
+
+    def load_model(self, file_path="last.pkl"):
+        file_path = "%s/models/%s" % (self.data_n7_dir, file_path)
+        logging.info("LOADING MODEL: %s" % file_path)
+        model = joblib.load(file_path)
+        logging.info("LOADED MODEL MODEL %r" % model)
+        return model
+
+    def save_model(self, model, file_path="last.pkl"):
+        logging.info("SAVING MODEL: %s" % file_path)
+        file_path = "%s/models/%s" % (self.data_n7_dir, file_path)
+        joblib.dump(model, file_path, compress=9)
+        logging.info("SAVING DONE: %s" % file_path)
+
 
 class FeatureSet(object):
 
@@ -355,11 +377,16 @@ class FeatureSet(object):
         self.fit_pca(X, n_components, kernel)
         
     def fit_tfidf(self, X):
-        self.tfidf_model = TfidfTransformer()
+        self.tfidf_model = FeatureSet.do_fit_tfidf(X)
+
+    @staticmethod
+    def do_fit_tfidf(X):
+        tfidf_model = TfidfTransformer()
         logging.info("FITTING TFIDF MODEL FROM %d EXAMPLES" % X.shape[0])
-        self.tfidf_model.fit(X)
+        tfidf_model.fit(X)
         logging.info("FITTING DONE")
-        
+        return tfidf_model
+
     def fit_tfidf_from_index(self, training_examples=10):
         X = self.fm_from_index(training_examples)
         self.fit_tfidf(X)
@@ -394,15 +421,13 @@ class FeatureSet(object):
         self.tfidf_model = joblib.load(file_path)
         logging.info("LOADED TFIDF MODEL %r" % self.tfidf_model)
         
-    def fm_from_index(self, training_examples=10):
+    def fm_from_tokens(self, i_tokens, training_examples=10):
         v_size = len(self.text_to_vector("", allow_pca=False))
         logging.info("INITIALIZING %dx%d MATRIX" % (training_examples, v_size))
         X = np.zeros((training_examples, v_size), dtype=self.dtype)
-        # X = matrix((training_examples, v_size), dtype=self.dtype)
-        
+        # X = matrix((training_examples, v_size), dtype=self.dtype)        
         i = 0
-        for tweet_id, tweet_vector in self.searcher.iterate():
-            tokens = [self.full_index.id_term_map[term_id] for term_id in tweet_vector]
+        for tokens in i_tokens:
             f_vect = self.terms_to_vector(None, tokens, allow_pca=False)
             print "EXTRACTED %d/%d" % (i, training_examples)
             X[i,:] = f_vect
@@ -415,15 +440,23 @@ class FeatureSet(object):
         if self.verbose:
             print X
         return X
+        
+        
+    def fm_from_index(self, training_examples=10):
+        i_verctors = imap(lambda x: x[1], self.searcher.iterate())
+        i_tokens = imap(lambda v: [self.full_index.id_term_map[tid] for tid in v], i_verctors)
+        return self.fm_from_tokens(i_tokens, training_examples=training_examples)
     
     @staticmethod
-    def save_fm(X, file_path=None):
+    def save_fm(X, file_path=None, sparse=False):
         if file_path is None:
             file_path = "%s/models/X.pkl" % N7_DATA_DIR
         else:
             file_path = "%s/models/%s" % (N7_DATA_DIR, file_path)
+        if sparse:
+            logging.info("CONVERTING TO SPARSE REPRESENTATION")
+            X = sparse_matrix(X, dtype=X.dtype)
         logging.info("SAVING FEATURE MATRIX %r -> %s" % (X.shape, file_path))
-        print X
         joblib.dump(X, file_path, compress=9)
         
     @staticmethod
@@ -434,6 +467,34 @@ class FeatureSet(object):
             file_path = "%s/models/%s" % (N7_DATA_DIR, file_path)
         X = joblib.load(file_path)
         return X
+    
+    def load_from_csv(self, file_paths, labeled=True):
+        Y = []
+        texts = []
+        i = 1
+        for fl_path in file_paths:
+            reader = csv.reader(open(fl_path, "rb"))
+            for row in reader:
+                text = row[-1]
+                texts.append(text)
+                if labeled:
+                    cl = row[0]
+                    if cl == "?":
+                        Y.append(0)
+                    else:
+                        if int(cl) > 0:
+                            Y.append(i)
+                        else:
+                            Y.append(0)
+            i += 1
+
+        i_tokens = imap(self.index.tokenize, texts)
+        X = self.fm_from_tokens(i_tokens, 296)
+
+        if labeled:
+            return X, Y
+        return X
+        
 
     def info(self):
         pass

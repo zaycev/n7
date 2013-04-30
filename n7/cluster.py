@@ -21,27 +21,32 @@ from sklearn.cluster import MiniBatchKMeans, KMeans, Ward, AffinityPropagation, 
 
 class Clusterer(object):
 
-    def __init__(self, X, to_pdf=False):
-        self.X = X
+    def __init__(self, to_pdf=False):
         self.to_pdf = to_pdf
         if self.to_pdf:
             self.pdf = ""
             
-    def draw(self):
+    def draw(self, X, X1=None, Y1=None):
         pl.close('all')
         pl.figure(1)
         pl.clf()
-        X2d = RandomizedPCA(n_components=2).fit_transform(self.X)
-        print len(X2d)
+        X2d = RandomizedPCA(n_components=2).fit_transform(X)
+        colors = "rbgcmybgrcmybgrcmybgrcm" * 10
         for i in xrange(len(X2d)):
             x = X2d[i]
-            pl.plot(x[0], x[1], ".", markerfacecolor="r", markeredgecolor="r", alpha=0.2)
+            pl.plot(x[0], x[1], "o", markerfacecolor="r", markeredgecolor="r", alpha=0.035)
+        if X1 is not None and Y1 is not None:
+            X12d = RandomizedPCA(n_components=2).fit_transform(X1)
+            for i in xrange(len(X12d)):
+                x = X12d[i]
+                if Y1[i] > 0:
+                    pl.plot(x[0], x[1], "o", markerfacecolor=colors[Y1[i]], markeredgecolor="k", alpha=1)
         pl.show()
         
 
-    def kmean(self, n_clusters, plot=True):
+    def kmean(self, X, n_clusters, plot=True):
         k_means = Ward(n_clusters=n_clusters, copy=False, compute_full_tree=True)
-        k_means.fit(self.X)
+        k_means.fit(X)
         labels = k_means.labels_
         
         pl.close('all')
@@ -50,7 +55,7 @@ class Clusterer(object):
         
         if plot:
             colors = "rbgcmybgrcmybgrcmybgrcm" * 10
-            X2d = RandomizedPCA(n_components=2).fit_transform(self.X)
+            X2d = RandomizedPCA(n_components=2).fit_transform(X)
             for i in xrange(len(X2d)):
                 x = X2d[i]
                 pl.plot(x[0], x[1], "o", markerfacecolor=colors[labels[i]], markeredgecolor=colors[labels[i]])
