@@ -33,5 +33,5 @@ if __name__ == "__main__":
     model.fit(X.toarray())
     logging.info("FITTING DONE: %r" % model)
     loader.save_model(model, output_model_name)
-    loader.save_model(model.lambdas_, output_model_name + ".ev")
+    # loader.save_model(model.lambdas_, output_model_name + ".ev")
 
