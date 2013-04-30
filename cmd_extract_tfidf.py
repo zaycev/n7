@@ -16,17 +16,20 @@ import logging
 
 from n7.model import FeatureSet
 
+
 if __name__ == "__main__":
 
     logging.basicConfig(level=logging.INFO)
     index_directory = sys.argv[1]
-    matrix_name = sys.argv[2] if len(sys.argv) > 2 else "tfidf.pkl"
-    
-    if len(sys.argv) > 3:
-        dataset_size = int(sys.argv[3])
+
+    if len(sys.argv) > 2:
+        dataset_size = int(sys.argv[2])
     else:
         dataset_size = 10 ** 5
-    
+
+    matrix_name = sys.argv[3] if len(sys.argv) > 3 else "X_tfidf.pkl"
+    model_tfidf_name = sys.argv[4] if len(sys.argv) > 4 else "model_tfidf.pkl"
+
     logging.info("EXTRACTING FEATURE MATRIX")
     logging.info("INDEX DIRECTORY: %s" % index_directory)
 
@@ -41,7 +44,8 @@ if __name__ == "__main__":
                        ft_terms_tfidf=True,
                        pca=False,
                        ft_scale=True)
-    f_set.load_tfidf_model("model_tfidf_1.pkl")
+    f_set.load_tfidf_model(model_tfidf_name)
     X = f_set.fm_from_index(training_examples=dataset_size)
+    
     f_set.save_fm(X, matrix_name, sparse=True)
 
