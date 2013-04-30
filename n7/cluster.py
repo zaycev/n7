@@ -44,8 +44,8 @@ class Clusterer(object):
         pl.show()
         
 
-    def kmean(self, X, n_clusters, plot=True):
-        k_means = Ward(n_clusters=n_clusters, copy=False, compute_full_tree=True)
+    def ward(self, X, n_clusters, plot=True):
+        k_means = Ward(n_clusters=n_clusters, copy=False, compute_full_tree=True, memory="cache")
         k_means.fit(X)
         labels = k_means.labels_
         
@@ -58,13 +58,32 @@ class Clusterer(object):
             X2d = RandomizedPCA(n_components=2).fit_transform(X)
             for i in xrange(len(X2d)):
                 x = X2d[i]
-                pl.plot(x[0], x[1], "o", markerfacecolor=colors[labels[i]], markeredgecolor=colors[labels[i]])
+                pl.plot(x[0], x[1], "o", markerfacecolor=colors[labels[i]], markeredgecolor=colors[labels[i]], alpha=0.035)
             pl.show()
         
         return k_means.labels_
 
-    def dbscan(self, plot=True):
-        X = self.fm.X
+    def kmeans(self, X, n_clusters, plot=True):
+        k_means = KMeans(init="k-means++", n_clusters=n_clusters, precompute_distances=True)
+        k_means.fit(X)
+        labels = k_means.labels_
+
+        pl.close('all')
+        pl.figure(1)
+        pl.clf()
+
+        if plot:
+            colors = "rbgcmybgrcmybgrcmybgrcm" * 10
+            X2d = RandomizedPCA(n_components=2).fit_transform(X)
+            for i in xrange(len(X2d)):
+                x = X2d[i]
+                pl.plot(x[0], x[1], "o", markerfacecolor=colors[labels[i]], markeredgecolor=colors[labels[i]], alpha=0.035)
+            pl.show()
+
+        return k_means.labels_
+            
+            
+    def dbscan(self, X, plot=True):
         from scipy.spatial import distance
         from sklearn.cluster import DBSCAN
         from sklearn import metrics
@@ -101,8 +120,7 @@ class Clusterer(object):
         return labels
         
             
-    def affinity(self, plot=True):
-        X = self.fm.X
+    def aff(self, X, plot=True):
         af = AffinityPropagation().fit(X)
         cluster_centers_indices = af.cluster_centers_indices_
         labels = af.labels_

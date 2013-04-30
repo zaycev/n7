@@ -15,46 +15,51 @@ import gc
 import sys
 import logging
 
-from n7.model import FeatureSet
+from n7.model import FSetLoader
 from n7.cluster import Clusterer
+from sklearn.decomposition import PCA
+
 
 if __name__ == "__main__":
 
-    index_directory = sys.argv[1]
     logging.basicConfig(level=logging.INFO)
     logging.info("CLUSTERING")
 
+    pca_components = int(sys.argv[2]) if len(sys.argv) > 2 else -1
+
+    input_matrix_name = sys.argv[3] if len(sys.argv) > 3 else "X_tfidf.pkl"
+    pca_model_name = sys.argv[4] if len(sys.argv) > 4 else "model_kpca.pkl"
+
+    loader = FSetLoader()
+
+    X = loader.load_model(input_matrix_name)
+    pca = loader.load_model(pca_model_name)
     
-    
-    logging.info("INDEX DIRECTORY: %s" % index_directory)
-    f_set = FeatureSet(index_directory,
-                       ft_number_of_words=True,
-                       ft_number_of_hash_tags=True,
-                       ft_number_of_user_names=True,
-                       ft_number_of_bad_words=True,
-                       ft_number_of_links=True,
-                       ft_number_of_punct=True,
-                       ft_emoticons=True,
-                       ft_terms_tfidf=True,
-                       pca=True,
-                       ft_scale=True)
-    f_set.load_tfidf_model("model_tfidf_1.pkl")
-    f_set.load_pca_model("model_pca_1.pkl")    
-    
-    
-    X0 = FeatureSet.load_fm()
-    X1, Y1 = f_set.load_from_csv([
-        "n7-data/labeled/data_aol.csv",
-        "n7-data/labeled/data_google.csv",
-        "n7-data/labeled/data_mcdonalds.csv",
-    ])
-    
-    logging.info("LOADED FEATURE MATRIX %dx%d" % (X0.shape[0], X0.shape[1]))
+    logging.info("APPLYING PCA ON %dx%d examples" % (X.shape[0], X.shape[1]))
+    X = pca.transform(X)
+    logging.info("TRANSFOMATION DONE %r" % X)
+
+    # X1, Y1 = f_set.load_from_csv([
+    #     "n7-data/labeled/data_aol.csv",
+    #     "n7-data/labeled/data_google.csv",
+    #     "n7-data/labeled/data_mcdonalds.csv",
+    # ])
+    # 
+    # logging.info("LOADED FEATURE MATRIX %dx%d" % (X0.shape[0], X0.shape[1]))
     
     cl = Clusterer()
     
-    # cl.draw(X0, X1, Y1)
-    cl.kmean(X0, 20)
+    if pca_components > 0:
+        pca = PCA(n_components=pca_components)
+        X = pca.fit_transform(X)
+        import gc
+        gc.collect()
+        print X.shape
+    
+    # cl.draw(X)
+    # cl.kmeans(X, 66)
+    cl.aff(X)
+    # cl.dbscan(X)
     
     
 

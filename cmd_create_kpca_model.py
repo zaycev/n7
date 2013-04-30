@@ -22,12 +22,13 @@ if __name__ == "__main__":
 
     logging.basicConfig(level=logging.INFO)
 
-    input_matrix_name = sys.argv[1] if len(sys.argv) > 1 else "X_tfidf.pkl"
-    output_model_name = sys.argv[2] if len(sys.argv) > 2 else "model_kpca.pkl"
+    kpca_size = int(sys.argv[1]) if len(sys.argv) > 1 else 15000
+    input_matrix_name = sys.argv[2] if len(sys.argv) > 2 else "X_tfidf.pkl"
+    output_model_name = sys.argv[3] if len(sys.argv) > 3 else "model_kpca.pkl"
 
     loader = FSetLoader()
 
-    X = loader.load_model(input_matrix_name)
+    X = loader.load_model(input_matrix_name)[0:kpca_size,:]
     model = KernelPCA(n_components=128, kernel="sigmoid")
     logging.info("FITTING PCA on %dx%d examples" % (X.shape[0], X.shape[1]))
     model.fit(X.toarray())
