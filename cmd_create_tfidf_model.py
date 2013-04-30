@@ -32,5 +32,5 @@ if __name__ == "__main__":
     logging.info("FITTING TFIDF on %dx%d examples" % (X_tf.shape[0], X_tf.shape[1]))
     model.fit(X_tf)
     logging.info("FITTING DONE: %r" % model)
-    loader.save_model(output_model_name)
+    loader.save_model(model, output_model_name)
 
